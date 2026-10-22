@@ -5,7 +5,8 @@ function check(error: { message: string } | null, action: string): void {
   if (error) throw new Error(`Failed to ${action}: ${error.message}`);
 }
 
-// Updates never overwrite a completed row.
+// markProcessing and markFailed never overwrite a completed row; markCompleted
+// is unguarded.
 export function createSupabaseMessageStore(
   client: AppSupabaseClient,
 ): MessageStore {

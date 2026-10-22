@@ -1,6 +1,7 @@
 import { Redis } from "ioredis";
 import { Queue, type JobsOptions } from "bullmq";
 import { requireEnv } from "@/lib/env";
+import { logger } from "@/lib/logger";
 
 export const TELEGRAM_QUEUE_NAME = "telegram-integration-queue";
 
@@ -28,13 +29,15 @@ const globalForQueue = globalThis as typeof globalThis & {
 };
 
 function getProducerQueue(): Queue<TelegramJobData> {
-  globalForQueue.__telegramQueue ??= new Queue<TelegramJobData>(
-    TELEGRAM_QUEUE_NAME,
-    {
+  if (!globalForQueue.__telegramQueue) {
+    const queue = new Queue<TelegramJobData>(TELEGRAM_QUEUE_NAME, {
       connection: new Redis(requireEnv("REDIS_URL")),
       defaultJobOptions: DEFAULT_JOB_OPTIONS,
-    },
-  );
+    });
+    // Attached here, at creation, so hot reloads reusing the cached queue don't stack listeners.
+    queue.on("error", (error) => logger.error("Producer queue error", { error }));
+    globalForQueue.__telegramQueue = queue;
+  }
   return globalForQueue.__telegramQueue;
 }
 

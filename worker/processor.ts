@@ -82,6 +82,8 @@ export async function processTelegramJob(
       formatTelegramText(message.user_name, content),
     );
     // Recorded before touching the database so a retry can tell the send happened.
+    // If this write fails right after a successful send, a retry re-sends (accepted
+    // at-least-once window, see the spec).
     await job.updateProgress({ telegramResult });
   }
 

@@ -1,6 +1,6 @@
 # 03: Delivery failures — retries, rate limits, no duplicates
 
-**What to build:** When Telegram misbehaves, the person sees an honest status and the Telegram chat never gets duplicates:
+**What to build:** When Telegram misbehaves, the person sees an honest status and a retry never re-sends a message Telegram already accepted (except the accepted at-least-once window in the spec: the send succeeds but saving the progress marker to Redis fails in that same instant):
 - **Permanent error** (bad token, unknown chat id, bot blocked): the message turns **failed** right away, with the reason visible in the UI.
 - **Transient error** (network, timeout, 5xx): the message stays **processing** while it is retried with exponential backoff (2/4/8/16s, 5 attempts). It ends **completed**, or **failed** with the last error once attempts run out.
 - **Telegram 429:** the whole queue pauses for exactly Telegram's `retry_after`, then continues. Rate limiting alone never fails a message.

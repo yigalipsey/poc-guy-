@@ -12,5 +12,5 @@ Context: see the spec (Solution; User Story 61; Implementation Decisions → Pac
 - [x] One dev command runs Next and the worker together in watch mode, loading `.env.local`.
 - [x] `.env.example` lists every variable with a short comment, extending the Supabase entries added in 01.
 - [x] The README has a local setup section: prerequisites, env vars, start Redis, run dev, run tests.
-- [ ] Manual check: a real message sent from the UI arrives in the real Telegram chat, and the UI shows completed without a refresh.
+- [x] Manual check: a real message sent from the UI arrives in the real Telegram chat, and the UI shows completed without a refresh.
 - [x] Type check, lint and tests all pass.

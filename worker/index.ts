@@ -26,6 +26,7 @@ function main(): void {
     connection,
     defaultJobOptions: DEFAULT_JOB_OPTIONS,
   });
+  queue.on("error", (error) => logger.error("Queue error", { error }));
   const store = createSupabaseMessageStore(getAdminClient());
 
   const worker = new Worker<TelegramJobData>(

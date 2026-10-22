@@ -71,7 +71,7 @@ Stack: Next.js (App Router, TypeScript, Tailwind) for UI and API; Supabase Postg
 33. As the operator, I want permanent errors (400 bad request/chat not found, 401 bad token, 403 bot blocked, 404) to fail immediately without retries, so that we don't waste attempts on errors that will never succeed.
 34. As the operator, I want a message marked failed, with the last error recorded, once retries are exhausted, so that nothing stays "processing" forever.
 35. As the operator, I want the worker to send at most about one message per second, so that we stay within Telegram's per-chat limits.
-36. As the operator, I want a message never posted to Telegram twice, even if a job is retried after Telegram already accepted it, so that the chat doesn't get duplicates.
+36. As the operator, I want a message never posted to Telegram twice, even if a job is retried after Telegram already accepted it, so that the chat doesn't get duplicates (apart from the accepted at-least-once residual risk under Further Notes).
 37. As the operator, I want the same message never enqueued twice, so that duplicate jobs can't exist.
 38. As the operator, I want the worker to skip a job whose message is already completed, so that redelivered jobs are harmless.
 39. As the operator, I want a job for a message that no longer exists to fail permanently, so that it doesn't retry forever.
