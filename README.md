@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# buzz-poc
 
-## Getting Started
+A proof of concept that relays chat messages to Telegram. You type a message in a small web chat; the app saves it to Supabase, queues it in Redis (BullMQ), and a separate worker sends it to a Telegram chat. The message's status (pending, processing, completed, failed) updates live in the UI.
 
-First, run the development server:
+Stack: Next.js (App Router) for the UI and API, Supabase Postgres + Realtime for storage, BullMQ on Redis for the queue, and a standalone Node worker that talks to the Telegram Bot API.
+
+## Local setup
+
+### Prerequisites
+
+- Node 22 (the worker relies on `--env-file-if-exists`, available from 22.9)
+- Docker (for a local Redis only; the database is the hosted Supabase project `buzz-poc`, there is no local Supabase stack)
+- A Telegram bot token and a chat id (see "Environment variables" below)
+
+### 1. Install dependencies
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Environment variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Copy the template and fill in the empty values. `.env.local` is git-ignored; never commit real secrets.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+cp .env.example .env.local
+```
 
-## Learn More
+| Variable | Used by | Where to get it |
+| --- | --- | --- |
+| `SUPABASE_URL` | web, worker | Prefilled in `.env.example` (public). |
+| `SUPABASE_PUBLISHABLE_KEY` | web (also sent to the browser) | Prefilled in `.env.example` (public). |
+| `SUPABASE_SECRET_KEY` | web, worker | Supabase dashboard, project `buzz-poc`, Project Settings, API Keys, the secret key (`sb_secret_...`). |
+| `REDIS_URL` | web, worker | `redis://localhost:6379` for the compose Redis (prefilled). |
+| `TELEGRAM_BOT_TOKEN` | worker | The token @BotFather gave you when you created the bot. |
+| `TELEGRAM_CHAT_ID` | worker | Id of the chat the bot should post to. The bot must be a member of that chat and must have been sent at least one message there. |
 
-To learn more about Next.js, take a look at the following resources:
+All variables are read at runtime. The worker refuses to start and names every missing variable if any are absent.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 3. Start Redis
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+docker compose up -d
+```
 
-## Deploy on Vercel
+This starts Redis only, configured with `maxmemory-policy noeviction` (queued jobs are never evicted) and AOF persistence. Data lives in the `redis-data` Docker volume. Stop it with `docker compose down` (add `-v` to also wipe the queue).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 4. Run the app and the worker
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run dev:all
+```
+
+This runs Next (`http://localhost:3000`) and the worker together in watch mode, with the output of both in one terminal. Next loads `.env.local` itself; the worker loads it via `tsx --env-file-if-exists`. Without `.env.local` you get a warning, and the worker logs `Worker cannot start` listing the missing variables instead of crash-looping. After creating or editing `.env.local`, restart `npm run dev:all` so the worker picks the values up.
+
+You can also run them separately: `npm run dev` (web only) and `npm run worker:dev` (worker only, watch mode) or `npm run worker` (worker once, no watch).
+
+### 5. Tests, types and lint
+
+```bash
+npm test          # Vitest, no network/Redis/Supabase needed
+npm run typecheck
+npm run lint
+```
+
+## Manual end-to-end check
+
+The API route, the Realtime UI and the real Telegram delivery are not covered by unit tests. To verify the happy path against the real Telegram API:
+
+1. Complete steps 1 to 4 above with all six variables set in `.env.local`.
+2. Open `http://localhost:3000`, enter a display name, and send a message.
+3. The message appears in the list as **pending**, then **processing**, then **completed**, without refreshing the page.
+4. The same message arrives in the Telegram chat identified by `TELEGRAM_CHAT_ID`.
+
+If the badge turns **failed** or stays on pending, check the `[worker]` output in the terminal; it logs the reason.
+
+## Notes
+
+- There is no rate limiter on the send endpoint yet; it arrives in ticket 04, so locally you can send as many messages as you like.
+- In this PoC the message feed is public-read (anyone with the publishable key can read all messages). Do not use it for anything sensitive; a fuller security note is planned.
+
+## Project docs
+
+The spec and tickets live in `.scratch/telegram-relay-poc/` (start with `spec.md`).

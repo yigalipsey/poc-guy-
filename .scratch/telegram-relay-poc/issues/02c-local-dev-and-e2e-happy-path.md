@@ -8,9 +8,9 @@ Context: see the spec (Solution; User Story 61; Implementation Decisions → Pac
 
 **Status:** ready-for-agent
 
-- [ ] docker-compose for local development runs Redis only, with `noeviction` and AOF.
-- [ ] One dev command runs Next and the worker together in watch mode, loading `.env.local`.
-- [ ] `.env.example` lists every variable with a short comment, extending the Supabase entries added in 01.
-- [ ] The README has a local setup section: prerequisites, env vars, start Redis, run dev, run tests.
+- [x] docker-compose for local development runs Redis only, with `noeviction` and AOF.
+- [x] One dev command runs Next and the worker together in watch mode, loading `.env.local`.
+- [x] `.env.example` lists every variable with a short comment, extending the Supabase entries added in 01.
+- [x] The README has a local setup section: prerequisites, env vars, start Redis, run dev, run tests.
 - [ ] Manual check: a real message sent from the UI arrives in the real Telegram chat, and the UI shows completed without a refresh.
-- [ ] Type check, lint and tests all pass.
+- [x] Type check, lint and tests all pass.

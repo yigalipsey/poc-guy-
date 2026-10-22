@@ -14,14 +14,14 @@ Context: see the spec (Implementation Decisions → Modules → Chat page, Chat 
 
 **Status:** ready-for-agent
 
-- [ ] Next app scaffold: `src/app/layout.tsx`, `src/app/globals.css` (Tailwind) and a favicon, so `npm run dev` and `npm run build` succeed with no env vars set.
-- [ ] Queue module, producer side (added to `src/lib/queue.ts`): a producer Redis connection cached on `globalThis` so dev hot reloads don't leak connections, and `enqueueTelegramJob(data)` adding the job with `jobId = messageId`. Fail-fast connection settings and the 3-second give-up are ticket 04.
-- [ ] Send endpoint `POST /api/messages` happy path: parses JSON, validates with Zod (`user_name` trimmed 1–50 characters, `content` trimmed 1–4000), inserts the row with the admin client, enqueues, and returns 202 `{ message }`. It has no rate limiter yet. The status-code mapping for failures is ticket 04.
-- [ ] Health route `GET /api/health` returns 200 `{ ok: true }` at request time and does not check Redis or Supabase.
-- [ ] The chat page renders its shell immediately and loads the latest 50 messages at request time (Next 16 Cache Components: request-time data behind `connection()` inside Suspense).
-- [ ] The Supabase URL and publishable key are passed to the client as props. No `NEXT_PUBLIC_*` vars and no secret key reach the browser.
-- [ ] Name gate: the display name is entered once and stored in localStorage (wrapped in try/catch), and is pre-filled on reload.
-- [ ] Composer: Enter sends and Shift+Enter adds a newline. The Send button disables while a request is in flight. The 202 response row appears in the list immediately.
-- [ ] The client subscribes to Supabase Realtime INSERT and UPDATE on messages. Status badges (pending grey, processing blue with a spinner, completed green, failed red) update live, and messages from other tabs appear live.
-- [ ] Messages are shown oldest to newest, with the list scrolled to the newest.
-- [ ] Type check, lint and tests all pass.
+- [x] Next app scaffold: `src/app/layout.tsx`, `src/app/globals.css` (Tailwind) and a favicon, so `npm run dev` and `npm run build` succeed with no env vars set.
+- [x] Queue module, producer side (added to `src/lib/queue.ts`): a producer Redis connection cached on `globalThis` so dev hot reloads don't leak connections, and `enqueueTelegramJob(data)` adding the job with `jobId = messageId`. Fail-fast connection settings and the 3-second give-up are ticket 04.
+- [x] Send endpoint `POST /api/messages` happy path: parses JSON, validates with Zod (`user_name` trimmed 1–50 characters, `content` trimmed 1–4000), inserts the row with the admin client, enqueues, and returns 202 `{ message }`. It has no rate limiter yet. The status-code mapping for failures is ticket 04.
+- [x] Health route `GET /api/health` returns 200 `{ ok: true }` at request time and does not check Redis or Supabase.
+- [x] The chat page renders its shell immediately and loads the latest 50 messages at request time (Next 16 Cache Components: request-time data behind `connection()` inside Suspense).
+- [x] The Supabase URL and publishable key are passed to the client as props. No `NEXT_PUBLIC_*` vars and no secret key reach the browser.
+- [x] Name gate: the display name is entered once and stored in localStorage (wrapped in try/catch), and is pre-filled on reload.
+- [x] Composer: Enter sends and Shift+Enter adds a newline. The Send button disables while a request is in flight. The 202 response row appears in the list immediately.
+- [x] The client subscribes to Supabase Realtime INSERT and UPDATE on messages. Status badges (pending grey, processing blue with a spinner, completed green, failed red) update live, and messages from other tabs appear live.
+- [x] Messages are shown oldest to newest, with the list scrolled to the newest.
+- [x] Type check, lint and tests all pass.

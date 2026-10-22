@@ -4,9 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "predev:all": "node scripts/check-env-local.mjs",
+    "dev:all": "concurrently -n web,worker -c cyan,magenta \"npm:dev\" \"npm:worker:dev\"",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "worker": "tsx --env-file-if-exists=.env.local worker/index.ts",
+    "worker:dev": "tsx watch --env-file-if-exists=.env.local --include=.env.local worker/index.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

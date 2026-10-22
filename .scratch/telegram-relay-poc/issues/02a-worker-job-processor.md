@@ -8,13 +8,13 @@ Context: see the spec (Implementation Decisions → Modules → Worker, steps 1�
 
 **Status:** ready-for-agent
 
-- [ ] The worker's job processor is a function with injected dependencies (message store, Telegram sender, queue rate-limiter) and is wired to a BullMQ Worker with concurrency 1 and a limiter of 1 job per second, running as a separate Node process. This is the seam later tickets test through.
-- [ ] Processor happy path: it loads the row, marks it processing, sends `name: content` via the Telegram client, records the result as job progress, then marks the row completed with the stringified Telegram result. Covered by a Vitest test through the processor seam using in-memory fakes.
-- [ ] Env helper (`src/lib/env.ts`): reads a required variable at call time, never at import time, and throws a named error naming the missing variable.
-- [ ] Logger (`src/lib/logger.ts`): structured JSON logger with info, warn and error, one JSON object per line.
-- [ ] Supabase module (`src/lib/supabase.ts`): the admin client (secret key, refuses to construct in a browser), the browser client factory (publishable key and URL passed in, no `NEXT_PUBLIC_*`), the shared column list and page size of 50, and `fetchRecentMessages(client)` returning the latest 50, oldest first. Typed with the generated `src/types/database.ts` from 01.
-- [ ] Queue module, consumer side (`src/lib/queue.ts`): the queue name `telegram-integration-queue`, the job payload type `{ messageId, content }`, the default job options (5 attempts, exponential backoff from 2s, completed jobs removed after 24h and failed after 7 days), and the worker Redis connection with `maxRetriesPerRequest: null`.
-- [ ] Telegram client (`src/lib/telegram.ts`): `sendTelegramMessage`, the `TelegramError` kinds (retryable, rate_limited, fatal) and `formatTelegramText`, exactly as in the spec. Its Vitest suite covers every case listed in Testing Decisions → Seam 2.
-- [ ] Test setup: `vitest.config.mts` (Node environment, `@` alias to `src`) and `test` and `typecheck` npm scripts, so the Telegram suite and the processor suite run with `npm test`.
-- [ ] The worker validates its required env vars at startup and exits with a clear error if any is missing.
-- [ ] Type check, lint and tests all pass.
+- [x] The worker's job processor is a function with injected dependencies (message store, Telegram sender, queue rate-limiter) and is wired to a BullMQ Worker with concurrency 1 and a limiter of 1 job per second, running as a separate Node process. This is the seam later tickets test through.
+- [x] Processor happy path: it loads the row, marks it processing, sends `name: content` via the Telegram client, records the result as job progress, then marks the row completed with the stringified Telegram result. Covered by a Vitest test through the processor seam using in-memory fakes.
+- [x] Env helper (`src/lib/env.ts`): reads a required variable at call time, never at import time, and throws a named error naming the missing variable.
+- [x] Logger (`src/lib/logger.ts`): structured JSON logger with info, warn and error, one JSON object per line.
+- [x] Supabase module (`src/lib/supabase.ts`): the admin client (secret key, refuses to construct in a browser), the browser client factory (publishable key and URL passed in, no `NEXT_PUBLIC_*`), the shared column list and page size of 50, and `fetchRecentMessages(client)` returning the latest 50, oldest first. Typed with the generated `src/types/database.ts` from 01.
+- [x] Queue module, consumer side (`src/lib/queue.ts`): the queue name `telegram-integration-queue`, the job payload type `{ messageId, content }`, the default job options (5 attempts, exponential backoff from 2s, completed jobs removed after 24h and failed after 7 days), and the worker Redis connection with `maxRetriesPerRequest: null`.
+- [x] Telegram client (`src/lib/telegram.ts`): `sendTelegramMessage`, the `TelegramError` kinds (retryable, rate_limited, fatal) and `formatTelegramText`, exactly as in the spec. Its Vitest suite covers every case listed in Testing Decisions → Seam 2.
+- [x] Test setup: `vitest.config.mts` (Node environment, `@` alias to `src`) and `test` and `typecheck` npm scripts, so the Telegram suite and the processor suite run with `npm test`.
+- [x] The worker validates its required env vars at startup and exits with a clear error if any is missing.
+- [x] Type check, lint and tests all pass.
