@@ -1,5 +1,8 @@
+// Startup configuration check for the worker process (never imported by Next).
 import { MissingEnvError, requireEnv } from "@/lib/env";
 
+// Includes variables that other modules read lazily (Supabase, Redis) so that a
+// missing one stops the worker at startup instead of failing the first job.
 export const REQUIRED_ENV = [
   "SUPABASE_URL",
   "SUPABASE_SECRET_KEY",
@@ -8,6 +11,7 @@ export const REQUIRED_ENV = [
   "TELEGRAM_CHAT_ID",
 ] as const;
 
+// Only the Telegram settings are returned; the other modules read their own vars.
 export type WorkerConfig = {
   telegramBotToken: string;
   telegramChatId: string;

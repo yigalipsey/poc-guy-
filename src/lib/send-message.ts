@@ -1,9 +1,14 @@
+// Input contract for sending a message. Shared by the API route (validation) and
+// the chat UI (maxLength on the inputs) so the limits can't drift apart.
 import { z } from "zod";
 
 export const USER_NAME_MAX = 50;
+// Below Telegram's 4096-character limit to leave room for the "name: " prefix the
+// worker adds.
 export const CONTENT_MAX = 4000;
 
 export const sendMessageSchema = z.object({
+  // trim() runs before min(), so whitespace-only input is rejected as empty.
   user_name: z
     .string("Name is required")
     .trim()

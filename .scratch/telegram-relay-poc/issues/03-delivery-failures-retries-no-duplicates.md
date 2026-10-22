@@ -13,16 +13,16 @@ Context: see the spec (Implementation Decisions → Worker, steps 1–5; Testing
 
 **Status:** ready-for-agent
 
-- [ ] Fatal Telegram errors become BullMQ unrecoverable errors, and the row is marked failed with the error message on the first attempt.
-- [ ] Retryable errors are rethrown so BullMQ applies the configured exponential backoff. The row stays processing on non-final attempts.
-- [ ] On the final attempt (or any unrecoverable error), the processor itself marks the row failed with the error message before rethrowing. Marking happens in the processor, not a `failed` event handler.
-- [ ] Marking failed never overwrites a completed row, and marking processing never overwrites a completed row.
-- [ ] `rate_limited` errors rate-limit the whole queue for `retryAfterMs` and throw BullMQ's rate-limit signal. They never mark failed and don't use up an attempt.
-- [ ] A job whose row is already completed returns without sending.
-- [ ] A job whose progress already holds a Telegram result ("sent once" marker) skips sending and only retries completing the row.
-- [ ] A job whose row doesn't exist fails as unrecoverable.
-- [ ] A database read error while loading the row is retryable.
-- [ ] Each retry is logged with job id, message id, attempt number and error kind. The bot token never appears in logs or stored errors.
-- [ ] Vitest coverage through the processor seam for every case above: happy path, already completed, sent-once marker, failed completion update then retry without re-send, fatal, retryable non-final, retryable final, rate_limited, missing row, never overwriting completed.
+- [x] Fatal Telegram errors become BullMQ unrecoverable errors, and the row is marked failed with the error message on the first attempt.
+- [x] Retryable errors are rethrown so BullMQ applies the configured exponential backoff. The row stays processing on non-final attempts.
+- [x] On the final attempt (or any unrecoverable error), the processor itself marks the row failed with the error message before rethrowing. Marking happens in the processor, not a `failed` event handler.
+- [x] Marking failed never overwrites a completed row, and marking processing never overwrites a completed row.
+- [x] `rate_limited` errors rate-limit the whole queue for `retryAfterMs` and throw BullMQ's rate-limit signal. They never mark failed and don't use up an attempt.
+- [x] A job whose row is already completed returns without sending.
+- [x] A job whose progress already holds a Telegram result ("sent once" marker) skips sending and only retries completing the row.
+- [x] A job whose row doesn't exist fails as unrecoverable.
+- [x] A database read error while loading the row is retryable.
+- [x] Each retry is logged with job id, message id, attempt number and error kind. The bot token never appears in logs or stored errors.
+- [x] Vitest coverage through the processor seam for every case above: happy path, already completed, sent-once marker, failed completion update then retry without re-send, fatal, retryable non-final, retryable final, rate_limited, missing row, never overwriting completed.
 - [ ] Manual check: with a wrong chat id, a message from the UI shows failed with Telegram's reason within seconds.
-- [ ] Type check, lint and tests all pass.
+- [x] Type check, lint and tests all pass.

@@ -1,4 +1,6 @@
 "use client";
+// Browser side of the chat: name gate, live message list (Supabase Realtime) and the
+// composer that POSTs to /api/messages. Status changes arrive via Realtime, not the POST.
 
 import {
   useEffect,
@@ -19,6 +21,8 @@ const NAME_STORAGE_KEY = "buzz-poc:user-name";
 // Display name, remembered in localStorage. Every access is wrapped in
 // try/catch (private mode or blocked storage must not break the page).
 // `undefined` = not read yet (server render), `null` = no name stored.
+// The "storage" event doesn't fire in the tab that wrote the value, so changes are
+// announced to useSyncExternalStore through this listener set instead.
 const nameListeners = new Set<() => void>();
 
 function readStoredName(): string | null {
@@ -51,6 +55,8 @@ function subscribeToName(listener: () => void): () => void {
 }
 
 function useStoredName(): [string | null | undefined, (name: string) => void] {
+  // The server snapshot (undefined) matches the server render, so reading localStorage
+  // after hydration doesn't cause a mismatch.
   const name = useSyncExternalStore<string | null | undefined>(
     subscribeToName,
     getNameSnapshot,
@@ -69,6 +75,8 @@ export function Chat({ supabaseUrl, supabasePublishableKey, initialMessages }: P
   const [userName, setUserName] = useStoredName();
   const [messages, setMessages] = useState<MessageRow[]>(initialMessages);
 
+  // Initial rows come from the server render; everything after goes through
+  // mergeMessages so the list stays keyed by id and sorted.
   const merge = (incoming: MessageRow[]) =>
     setMessages((current) => mergeMessages(current, incoming));
 
@@ -77,6 +85,10 @@ export function Chat({ supabaseUrl, supabasePublishableKey, initialMessages }: P
     [supabaseUrl, supabasePublishableKey],
   );
 
+  // Live updates: INSERT brings new messages (including other people's), UPDATE
+  // carries the worker's status changes. The table must be in the
+  // supabase_realtime publication, and RLS lets the publishable key read it. Rows
+  // created while this is not subscribed are not refetched on (re)connect.
   useEffect(() => {
     const onChange = (payload: RealtimePostgresChangesPayload<MessageRow>) => {
       if (payload.eventType === "INSERT" || payload.eventType === "UPDATE") {
@@ -101,6 +113,7 @@ export function Chat({ supabaseUrl, supabasePublishableKey, initialMessages }: P
     };
   }, [supabase]);
 
+  // Hooks above must all run before these early returns to keep hook order stable.
   if (userName === undefined) {
     return null; // storage not read yet; avoids flashing the name gate
   }
@@ -159,7 +172,8 @@ function NameGate({ onSubmit }: { onSubmit: (name: string) => void }) {
 function MessageList({ messages }: { messages: MessageRow[] }) {
   const listRef = useRef<HTMLUListElement>(null);
 
-  // Keep the newest message in view whenever one is added.
+  // Keep the newest message in view whenever one is added. Keyed on length so a
+  // status update to an existing row doesn't scroll the list.
   useEffect(() => {
     const list = listRef.current;
     if (list) list.scrollTop = list.scrollHeight;
@@ -185,6 +199,7 @@ function MessageItem({ message }: { message: MessageRow }) {
     <li className="rounded-md bg-slate-50 p-3">
       <div className="flex items-center justify-between gap-2 text-xs text-slate-500">
         <span className="font-medium text-slate-900">{message.user_name}</span>
+        {/* Server and browser may format the time in different time zones. */}
         <time dateTime={message.created_at} suppressHydrationWarning>
           {new Date(message.created_at).toLocaleTimeString()}
         </time>
@@ -197,6 +212,8 @@ function MessageItem({ message }: { message: MessageRow }) {
   );
 }
 
+// status is a plain text column, so BADGE_STYLES is keyed by string and unknown
+// values fall back to the pending style below.
 const BADGE_STYLES: Record<string, string> = {
   pending: "bg-slate-200 text-slate-700",
   processing: "bg-blue-100 text-blue-800",
@@ -238,6 +255,8 @@ function Composer({
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // A ref, not just `sending`: state updates are async, so a quick double Enter could
+  // otherwise pass the check twice and submit the message twice.
   const inFlight = useRef(false);
 
   async function send() {
@@ -256,6 +275,8 @@ function Composer({
         message?: MessageRow;
         error?: string;
       } | null;
+      // Merge the POST response right away so the message shows up without waiting for
+      // the Realtime INSERT event; the draft is cleared only on success.
       if (response.ok && body?.message) {
         onSent(body.message);
         setDraft("");
@@ -271,6 +292,7 @@ function Composer({
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    // isComposing: Enter confirms an IME candidate and must not send the message.
     if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
       void send();
@@ -294,6 +316,7 @@ function Composer({
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={handleKeyDown}
+          // Mirrors the server-side limit; the API still validates independently.
           maxLength={CONTENT_MAX}
           rows={2}
           placeholder="Type a message. Enter to send, Shift+Enter for a new line."

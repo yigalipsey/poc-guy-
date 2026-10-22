@@ -1,3 +1,4 @@
+// Liveness probe for the container healthcheck / Coolify.
 import { connection } from "next/server";
 
 // Evaluated per request. Deliberately checks neither Redis nor Supabase, so a

@@ -1,3 +1,4 @@
+// Required-env helper shared by the Next server code and the worker process.
 export class MissingEnvError extends Error {
   readonly variable: string;
 
@@ -14,6 +15,7 @@ export function requireEnv(
   name: string,
   env: Record<string, string | undefined> = process.env,
 ): string {
+  // A blank value (e.g. a bare `FOO=` line copied from .env.example) counts as missing.
   const value = env[name];
   if (value === undefined || value.trim() === "") {
     throw new MissingEnvError(name);

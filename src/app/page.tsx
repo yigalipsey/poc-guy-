@@ -1,3 +1,5 @@
+// Chat page. The static shell is prerendered; the messages load per request
+// (ChatLoader) and are handed to the client-side Chat component.
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { requireEnv } from "@/lib/env";
@@ -21,10 +23,13 @@ export default function Page() {
   );
 }
 
+// Any failure (missing env, Supabase down) is logged server-side and surfaced as a
+// generic message, so configuration details never reach the browser.
 async function loadChatProps() {
   try {
     const supabaseUrl = requireEnv("SUPABASE_URL");
     const supabasePublishableKey = requireEnv("SUPABASE_PUBLISHABLE_KEY");
+    // Uses the secret key, but it stays on the server; only the rows become props.
     const initialMessages = await fetchRecentMessages(getAdminClient());
     return { supabaseUrl, supabasePublishableKey, initialMessages };
   } catch (error) {

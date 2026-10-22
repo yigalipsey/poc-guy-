@@ -1,3 +1,7 @@
+// Minimal Telegram Bot API client used by the worker. It knows nothing about BullMQ;
+// it only classifies failures so the caller can decide how to retry.
+// retryable: transient (network, timeout, 5xx). rate_limited: 429, carries
+// retryAfterMs. fatal: will never succeed (bad token, bad chat id, bot blocked).
 export type TelegramErrorKind = "retryable" | "rate_limited" | "fatal";
 
 export class TelegramError extends Error {
@@ -26,6 +30,7 @@ export type SendTelegramMessageArgs = {
 };
 
 const DEFAULT_TIMEOUT_MS = 10_000;
+// Used when a 429 arrives without a usable retry_after.
 const DEFAULT_RETRY_AFTER_MS = 5_000;
 
 export function formatTelegramText(userName: string, content: string): string {
@@ -39,6 +44,8 @@ type TelegramBody = {
   parameters?: { retry_after?: unknown };
 };
 
+// Telegram answers in JSON, but a proxy or outage can return HTML. Return undefined
+// instead of throwing so the HTTP status alone can still drive the classification.
 function parseBody(raw: string): TelegramBody | undefined {
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -59,6 +66,8 @@ export async function sendTelegramMessage({
   timeoutMs = DEFAULT_TIMEOUT_MS,
   fetchImpl = fetch,
 }: SendTelegramMessageArgs): Promise<unknown> {
+  // fetch has no built-in timeout; abort it ourselves so a hung connection can't
+  // block the worker, which processes one job at a time.
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -73,6 +82,8 @@ export async function sendTelegramMessage({
     });
     raw = await response.text();
   } catch (error) {
+    // Only the error's name is reported: the underlying message may include the URL,
+    // which contains the bot token.
     if (controller.signal.aborted) {
       throw new TelegramError(`Telegram request timed out after ${timeoutMs}ms`, {
         kind: "retryable",
@@ -90,6 +101,7 @@ export async function sendTelegramMessage({
   const { status } = response;
 
   if (response.ok) {
+    // A 2xx that isn't { ok: true } is unexpected and a retry won't change it.
     if (body?.ok === true) return body.result;
     throw new TelegramError(`Telegram returned an unexpected ${status} response`, {
       kind: "fatal",
@@ -101,6 +113,7 @@ export async function sendTelegramMessage({
     typeof body?.description === "string" ? body.description : undefined;
 
   if (status === 429) {
+    // Telegram's retry_after is in seconds.
     const retryAfter = Number(body?.parameters?.retry_after);
     const retryAfterMs =
       Number.isFinite(retryAfter) && retryAfter > 0
@@ -119,6 +132,8 @@ export async function sendTelegramMessage({
     );
   }
 
+  // Everything else (400 bad request/chat not found, 401 bad token, 403 blocked, 404)
+  // is permanent.
   throw new TelegramError(
     `Telegram error (${status}): ${description ?? "Unknown error"}`,
     { kind: "fatal", status },
